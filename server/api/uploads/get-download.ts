@@ -13,7 +13,7 @@ export default defineEventHandler(async (event) => {
   }
 
   setHeader(event, 'Content-Type', file.mimetype || 'application/octet-stream')
-  setHeader(event, 'Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(file.originalFilename || 'download')}`)
+  setHeader(event, 'Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(file.originalFilename)}`)
 
 
   return file.data

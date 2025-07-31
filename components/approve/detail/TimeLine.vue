@@ -36,39 +36,165 @@
               ></div>
             </div>
           </td>
-          <td style="height: 60px" class="text-left">{{ row.no }}</td>
-          <td style="height: 60px" class="text-left">{{ row.operator }}</td>
-          <td style="height: 60px" class="text-left">{{ row.detail }}</td>
-          <td style="height: 60px" class="text-left">
-            <q-btn
-              v-if="row.file"
-              dense flat color="primary"
-              label="ดาวน์โหลด"
-              @click="downloadFile(row.file)"
-            />
-            <span v-else>-</span>
+          <td class="text-left">{{ row.no }}</td>
+          <td class="text-left">{{ row.operator }}</td>
+          <td class="text-left">{{ row.detail }}</td>
+
+          <!-- เอกสาร -->
+          <td class="text-left">
+            <template v-if="row.file && !['1','4.2','6','9','12'].includes(String(row.no))">
+              <q-btn
+                dense flat color="primary"
+                :label="row.document || 'ดาวน์โหลด'"
+                @click="downloadFile(row.file)"
+              />
+            </template>
+            <template v-else>
+              {{ row.document || '-' }}
+            </template>
           </td>
-          <td style="height: 60px" class="text-left">
-            <q-btn flat label="Upload" @click="triggerUpload(i)" />
-            <input
-              type="file"
-              class="hidden"
-              accept=".doc,.docx,.xls,.xlsx,.pdf"
-              :ref="(el) => setFileInputRef(el as HTMLInputElement, i)"
-              @change="handleFileChange($event, row.no)"
-            />
+
+          <!-- Action -->
+<td class="text-left">
+  <template v-if="!['4.1', '4.2', '6', '7.1', '7.2'].includes(String(row.no))">
+    <div class="column items-start">
+      <q-btn flat label="Upload" @click="openUploadDialog(i)" />
+      <small
+        v-if="row.document_hint"
+        class="text-caption text-grey q-mt-xs"
+        style="white-space: normal"
+      >
+        เอกสารที่ต้องใช้: {{ row.document_hint }}
+      </small>
+    </div>
+  </template>
+</td>
+
+          <!-- เลขที่หนังสือ + จำนวนเงิน -->
+          <td class="text-left">
+            <template v-if="row.amount">
+              {{ row.document_no }} — จำนวนเงิน: {{ formatAmount(row.amount) }}
+            </template>
+            <template v-else>
+              {{ row.document_no || '-' }}
+            </template>
           </td>
-          <td style="height: 60px" class="text-left">{{ row.document_no }}</td>
-          <td style="height: 60px" class="text-left">{{ row.comment }}</td>
-          <td style="height: 60px" class="text-left">{{ row.date }}</td>
+
+          <td class="text-left">{{ row.comment }}</td>
+          <td class="text-left">{{ row.date }}</td>
         </tr>
       </tbody>
     </q-markup-table>
+
+    <!-- ✅ ข้อ 3: Upload Popup -->
+    <q-dialog v-model="showDialog">
+      <q-card style="min-width: 400px">
+        <q-card-section>
+          <div class="text-h6">อัปโหลดเอกสาร</div>
+        </q-card-section>
+
+        <q-card-section>
+          <q-file v-model="uploadForm.file" label="เลือกไฟล์เอกสาร" filled />
+          <q-input v-model="uploadForm.date_signed" label="วันที่ลงหนังสือ" type="date" filled class="q-mt-sm" />
+
+          <q-input
+            v-if="['2','3'].includes(String(currentStep?.no))"
+            v-model="uploadForm.document_no"
+            label="เลขที่หนังสือ"
+            filled class="q-mt-sm"
+          />
+
+          <q-input
+            v-if="String(currentStep?.no) === '9'"
+            v-model.number="uploadForm.amount"
+            label="จำนวนเงิน"
+            type="number"
+            filled class="q-mt-sm"
+          />
+        </q-card-section>
+
+        <q-card-actions align="right">
+          <q-btn flat label="ยกเลิก" v-close-popup />
+          <q-btn color="primary" label="อัปโหลด" @click="confirmUpload" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
+
 <script setup lang="ts">
 import { ref } from 'vue'
+
+
+const showDialog = ref(false)
+const currentIndex = ref(-1)
+const currentStep = ref<TimelineItem | null>(null)
+
+const uploadForm = ref({
+  file: null as File | null,
+  date_signed: '',
+  document_no: '',
+  amount: null as number | null
+})
+
+function openUploadDialog(index: number) {
+  currentIndex.value = index
+  currentStep.value = model.value[index] || null
+  showDialog.value = true
+  uploadForm.value = {
+    file: null,
+    date_signed: '',
+    document_no: currentStep.value?.document_no || '',
+    amount: currentStep.value?.amount || null
+  }
+}
+
+async function confirmUpload() {
+  const stepNo = currentStep.value?.no
+  const file = uploadForm.value.file
+  if (!file || !stepNo) return
+
+  const allowedExtensions = ['.doc', '.docx', '.xls', '.xlsx', '.pdf']
+  const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+  if (!allowedExtensions.includes(ext)) {
+    $q.notify({ type: 'negative', message: 'ไฟล์ไม่อยู่ในรูปแบบที่อนุญาต' })
+    return
+  }
+
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('step', String(stepNo))
+  formData.append('date_signed', uploadForm.value.date_signed)
+  formData.append('document_no', uploadForm.value.document_no || '')
+  formData.append('amount', String(uploadForm.value.amount || ''))
+
+  try {
+    const res = await axios.post('/api/uploads/upload', formData)
+    if (!res.data.success) throw new Error(res.data.error)
+
+    const item = model.value[currentIndex.value]
+    if (item) {
+    item.file = res.data.id
+    item.document_no = uploadForm.value.document_no
+    item.amount = uploadForm.value.amount ?? undefined
+    item.date_signed = uploadForm.value.date_signed
+  }
+
+    $q.notify({ type: 'positive', message: 'อัปโหลดเรียบร้อย' })
+    showDialog.value = false
+  } catch (err) {
+    console.error(err)
+    $q.notify({ type: 'negative', message: 'เกิดข้อผิดพลาดในการอัปโหลด' })
+  }
+}
+
+function formatAmount(value: number) {
+  return new Intl.NumberFormat('th-TH', {
+    style: 'decimal',
+    minimumFractionDigits: 0
+  }).format(value) + ' บาท'
+}
 
 
 interface TimelineItem {
@@ -81,7 +207,10 @@ interface TimelineItem {
   document_no: string;
   date: string;
   comment: string;
-  file?: string;
+  file?: string; 
+  amount?: number; 
+  date_signed?: string; 
+  document_hint?: string; 
 }
 
 const step = ref(10);
@@ -103,13 +232,14 @@ const step = ref(10);
     {
           no: 1,
           operator: 'กฟฟ.',
-          detail: 'Upload File ZAAR020 (from SAP)',
+          detail:   'Upload File ZAAR020 (from SAP)',
           document: 'File ZAAR020  รายงานขออนุมัติจำหน่ายมิเตอร์ชำรุด',
           document_no: '',
           status: 20,
           statusDesciption: '',
           date: '2024-09-11T11:20:30',
-          comment:''
+          comment:'',
+          document_hint:'File ZAAR020'
         },
         {
           no: 2,
@@ -120,7 +250,8 @@ const step = ref(10);
           status: 20,
           statusDesciption: '',
           date: '2024-09-12T14:30:00',
-          comment:''
+          comment:'',
+          document_hint:'หนังสือขออนุมัติจำหน่ายมิเตอร์และอุปกรณ์ประกอบ'
         },
         {
           no: 3,
@@ -131,7 +262,8 @@ const step = ref(10);
           status: 20,
           statusDesciption: '',
           date: '2024-09-13T09:00:00',
-          comment:''
+          comment:'',
+          document_hint:'หนังสืออนุมัติจำหน่ายจากผู้มีอำนาจลงนาม'
         },
         {
           no: 4,
@@ -142,7 +274,8 @@ const step = ref(10);
           status: 10,
           statusDesciption: '',
           date: '2024-09-14T15:45:00',
-          comment:''
+          comment:'',
+          document_hint:'ใบขออนุมัติเห็นชอบราคาขายขั้นต่ำ'
         },
         {
           no: '4.1',
@@ -153,7 +286,7 @@ const step = ref(10);
           status: 20,
           statusDesciption: '',
           date: '2024-09-15T10:20:00',
-          comment:''
+          comment:'',
         },
         {
           no: '4.2',
@@ -164,7 +297,7 @@ const step = ref(10);
           status: 10,
           statusDesciption: '',
           date: '2024-09-16T08:00:00',
-          comment:''
+          comment:'',
         },
         {
           no: 5,
@@ -175,7 +308,8 @@ const step = ref(10);
           status: 10,
           statusDesciption: '',
           date: '2024-09-17T16:30:00',
-          comment:''
+          comment:'',
+          document_hint:'หนังสืออนุมัติหลักการขาย'
         },
         {
           no: 6,
@@ -197,7 +331,8 @@ const step = ref(10);
           status: 10,
           statusDesciption: '',
           date: '2024-09-18T12:15:00',
-          comment:''
+          comment:'',
+          document_hint:'เอกสารประกาศขาย'
         },
         {
           no: '7.1',
@@ -232,7 +367,8 @@ const step = ref(10);
           status: 10,
           statusDesciption: '',
           date: '2024-09-18T12:15:00',
-          comment:''
+          comment:'',
+          document_hint:'หนังสืออนุมัติรับราคา'
         }
         ,
         {
@@ -244,7 +380,8 @@ const step = ref(10);
           status: 10,
           statusDesciption: '',
           date: '2024-09-18T12:15:00',
-          comment:''
+          comment:'',
+          document_hint:'ใบเสร็จรับเงิน และ ใส่จำนวนเงิน'
         } ,
         {
           no: 10,
@@ -255,7 +392,8 @@ const step = ref(10);
           status: 10,
           statusDesciption: '',
           date: '2024-09-18T12:15:00',
-          comment:''
+          comment:'',
+          document_hint:'ใบจ่ายของ (ตัดจำหน่าย MvT 555)'
         },
         {
           no: 11,
@@ -266,7 +404,8 @@ const step = ref(10);
           status: 10,
           statusDesciption: '',
           date: '2024-09-18T12:15:00',
-          comment:''
+          comment:'',
+          document_hint:'หนังสือรายงานการส่งมอบและรับมอบ'
         },
         {
           no: 12,
@@ -277,7 +416,8 @@ const step = ref(10);
           status: 10,
           statusDesciption: '',
           date: '2024-09-18T12:15:00',
-          comment:''
+          comment:'',
+          document_hint:'หนังสือรายงานการขาย'
         },
         {
           no: 13,
@@ -288,7 +428,8 @@ const step = ref(10);
           status: 10,
           statusDesciption: '',
           date: '2024-09-18T12:15:00',
-          comment:''
+          comment:'',
+          document_hint:'ตัดจำหน่ายทรัพย์สิน (AA)'
         }
       
 ]);
@@ -327,13 +468,20 @@ const handleFileChange = async (event: Event, stepNo: number | string) => {
   formData.append('step', String(stepNo))
 
   try {
-    const res = await axios.post('/api/uploads/upload', formData)
-    if (!res.data.success) {
-      $q.notify({ type: 'negative', message: res.data.error || 'อัปโหลดล้มเหลว' })
-      return
-    }
+const res = await axios.post('/api/uploads/upload', formData)
+if (!res.data.success) {
+  $q.notify({ type: 'negative', message: res.data.error || 'อัปโหลดล้มเหลว' })
+  return
+}
 
-    $q.notify({ type: 'positive', message: 'อัปโหลดไฟล์สำเร็จ' })
+const fileId = res.data.id
+
+// ⬇️ อัปเดต document สำหรับ step ที่อัปโหลด
+await axios.put(`/api/approve-detail/${stepNo}`, {
+  document: fileId
+})
+
+$q.notify({ type: 'positive', message: 'อัปโหลดและบันทึกสำเร็จ' })
 
     const index = model.value.findIndex((row) => row.no === stepNo)
     if (index !== -1 && model.value[index]) {
@@ -378,27 +526,35 @@ const downloadFile = async (id: string) => {
     const res = await fetch(`/api/uploads/get-download?id=${encodeURIComponent(id)}`)
     if (!res.ok) throw new Error('ไม่พบไฟล์')
 
-    // 👇 ดึง blob และชื่อไฟล์ที่ฝั่ง backend ส่งกลับมา
     const blob = await res.blob()
     const disposition = res.headers.get('Content-Disposition')
-    let filename = 'download.pdf'
 
+    let filename = 'download.pdf'
     if (disposition) {
-      const match = disposition.match(/filename\*=UTF-8''(.+)/)
-      if (match && match[1]) {
-        filename = decodeURIComponent(match[1])
+      const utf8Match = disposition.match(/filename\*=UTF-8''(.+)/)
+      const simpleMatch = disposition.match(/filename="(.+)"/)
+      if (utf8Match && utf8Match[1]) {
+        filename = decodeURIComponent(utf8Match[1])
+      } else if (simpleMatch && simpleMatch[1]) {
+        filename = simpleMatch[1]
       }
     }
 
-    const url = window.URL.createObjectURL(blob)
+    const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
     link.download = filename
     link.click()
-    window.URL.revokeObjectURL(url)
+    URL.revokeObjectURL(url)
   } catch (e) {
     $q.notify({ type: 'negative', message: 'ไม่พบไฟล์สำหรับดาวน์โหลด' })
   }
+  function formatAmount(value: number) {
+  return new Intl.NumberFormat('th-TH', {
+    style: 'decimal',
+    minimumFractionDigits: 0
+  }).format(value) + ' บาท';
+}
 }
 </script>
 

@@ -23,29 +23,46 @@ export default defineEventHandler(async (event) => {
       }
 
       const step = (fields.step || 'unknown').toString()
+      const documentNo = (fields.document_no || '').toString()
+      const dateSigned = (fields.date_signed || '').toString()
+      const amount = fields.amount ? parseFloat(fields.amount.toString()) : null
+
+      const originalName = file.originalFilename || 'unknown'
 
       const allowedExtensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx']
-      const ext = path.extname(file.originalFilename || '').toLowerCase()
+      const ext = path.extname(originalName).toLowerCase()
       if (!allowedExtensions.includes(ext)) {
         return resolve({ success: false, error: 'ไม่อนุญาตให้ส่งไฟล์ประเภทนี้' })
       }
 
-      // ✅ อ่านไฟล์เป็น buffer แล้วบันทึกลง MongoDB
       const buffer = fs.readFileSync(file.filepath)
 
-      try {
-        const result = await FileModel.create({
-          originalFilename: file.originalFilename,
-          mimetype: file.mimetype,
-          step,
-          data: buffer,
-        })
-        console.log('✅ MongoDB saved:', result)
-        return resolve({ success: true, id: result._id })
-      } catch (error) {
-        console.error('❌ MongoDB save error:', error)
-        return resolve({ success: false, error: 'บันทึก MongoDB ไม่สำเร็จ' })
-      }
+      const now = new Date()
+      const datePart = now.toISOString().split('T')[0] // YYYY-MM-DD
+      const nameOnly = path.parse(originalName).name.replace(/\s+/g, '_')
+      const storageName = `${step}__${nameOnly}__${datePart}${ext}`
+      
+
+      const savePath = path.join(process.cwd(), 'public/uploads', storageName)
+      fs.writeFileSync(savePath, buffer)
+
+      // ✅ บันทึกชื่อเดิมไว้ใน MongoDB ด้วย
+      const created = await FileModel.create({
+      step,
+      filename: storageName,
+      originalName,
+      uploadedAt: now,
+      documentNo,
+      dateSigned,
+      amount,
+      })
+
+      return resolve({
+        success: true,
+        id: created._id,
+        filename: storageName,
+        originalName
+      })
     })
   })
 })
