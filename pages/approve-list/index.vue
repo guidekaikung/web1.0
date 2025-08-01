@@ -1,19 +1,26 @@
 <template>
   <div class="q-pa-md">
     <div class="q-pa-md">
-      <NuxtLink to="/approve-add"
-        ><q-btn color="purple" label="+ สร้างขออนุมัติจำหน่าย"></q-btn
-      ></NuxtLink>
+      <NuxtLink to="/approve-add">
+        <q-btn color="purple" label="+ สร้างขออนุมัติจำหน่าย"></q-btn>
+      </NuxtLink>
     </div>
-    <ApproveListDataTable :rows="rows"/>
+    <ApproveListDataTable :rows="rowsWithDays" />
   </div>
 </template>
 
 <script setup lang="ts">
 definePageMeta({
-  middleware:["auth"],
+  middleware: ["auth"],
 })
-const visibleColumns = ["name"];
+
+function calculateDays(start: string, end: string): number {
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+  const diff = endDate.getTime() - startDate.getTime()
+  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+}
+
 const rows = [
   {
     request_no: "WAMCLBR0001",
@@ -154,9 +161,22 @@ const rows = [
     date_count_pending_approve: 4,
     amount_sell: 9000,
     comment: "Pending manager's approval.",
+  },
+]
+
+// ⬇️ คำนวณ date_count_approved
+const rowsWithDays = rows.map((r) => {
+  const start: string = r.create_date ?? ''
+  const today: string = new Date().toISOString().split("T")[0] as string
+
+
+
+  return {
+    ...r,
+    date_count_approved:
+      r.last_status === "ตัดจำหน่ายแล้ว (จบ)" && start
+        ? `${calculateDays(start, today)} วัน`
+        : "-"
   }
-
-];
-
-
+})
 </script>

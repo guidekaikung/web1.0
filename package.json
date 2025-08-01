@@ -12,6 +12,8 @@
   "dependencies": {
     "@quasar/extras": "^1.17.0",
     "axios": "^1.10.0",
+    "chart.js": "^4.5.0",
+    "chartjs-plugin-datalabels": "^2.2.0",
     "dotenv": "^17.2.0",
     "formdata-node": "^6.0.3",
     "formidable": "^3.5.4",
@@ -21,6 +23,7 @@
     "nuxt-quasar-ui": "^2.1.12",
     "quasar": "^2.18.1",
     "vue": "^3.5.17",
+    "vue-chartjs": "^5.3.2",
     "vue-router": "^4.5.1",
     "vue3-lottie": "^3.3.1"
   },
