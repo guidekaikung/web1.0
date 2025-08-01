@@ -57,13 +57,9 @@
           <!-- Action -->
 <td class="text-left">
   <template v-if="!['4.1', '4.2', '6', '7.1', '7.2'].includes(String(row.no))">
-    <div class="column items-start">
+    <div class="column">
       <q-btn flat label="Upload" @click="openUploadDialog(i)" />
-      <small
-        v-if="row.document_hint"
-        class="text-caption text-grey q-mt-xs"
-        style="white-space: normal"
-      >
+      <small v-if="row.document_hint" class="text-caption text-grey">
         เอกสารที่ต้องใช้: {{ row.document_hint }}
       </small>
     </div>
@@ -81,7 +77,7 @@
           </td>
 
           <td class="text-left">{{ row.comment }}</td>
-          <td class="text-left">{{ row.date }}</td>
+          <td class="text-left">{{ row.createdAt ? row.createdAt.split('T')[0] : row.date }}</td>
         </tr>
       </tbody>
     </q-markup-table>
@@ -122,10 +118,8 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
 import { ref } from 'vue'
-
 
 const showDialog = ref(false)
 const currentIndex = ref(-1)
@@ -167,19 +161,21 @@ async function confirmUpload() {
   formData.append('step', String(stepNo))
   formData.append('date_signed', uploadForm.value.date_signed)
   formData.append('document_no', uploadForm.value.document_no || '')
-  formData.append('amount', String(uploadForm.value.amount || ''))
-
+  if (uploadForm.value.amount !== null && uploadForm.value.amount !== undefined && !isNaN(uploadForm.value.amount)) {
+    formData.append('amount', String(uploadForm.value.amount))
+  }
   try {
     const res = await axios.post('/api/uploads/upload', formData)
     if (!res.data.success) throw new Error(res.data.error)
 
     const item = model.value[currentIndex.value]
     if (item) {
-    item.file = res.data.id
-    item.document_no = uploadForm.value.document_no
-    item.amount = uploadForm.value.amount ?? undefined
-    item.date_signed = uploadForm.value.date_signed
-  }
+      item.file = res.data.id
+      item.document_no = uploadForm.value.document_no
+      item.amount = uploadForm.value.amount ?? undefined
+      item.date_signed = uploadForm.value.date_signed
+      item.createdAt = res.data.createdAt || new Date().toISOString()
+    }
 
     $q.notify({ type: 'positive', message: 'อัปโหลดเรียบร้อย' })
     showDialog.value = false
@@ -211,6 +207,7 @@ interface TimelineItem {
   amount?: number; 
   date_signed?: string; 
   document_hint?: string; 
+  createdAt?: string
 }
 
 const step = ref(10);
@@ -237,7 +234,7 @@ const step = ref(10);
           document_no: '',
           status: 20,
           statusDesciption: '',
-          date: '2024-09-11T11:20:30',
+          date: '',
           comment:'',
           document_hint:'File ZAAR020'
         },
@@ -246,10 +243,10 @@ const step = ref(10);
           operator: 'กฟฟ.',
           detail: 'รายงานผลจากคณะกรรมการสอบหาข้อเท็จจริง (ส่งหนังสือถึง กบล.)',
           document: 'หนังสือขออนุมัติจำหน่ายมิเตอร์และอุปกรณ์ประกอบ',
-          document_no: 'น.3กฟส.ลบ.(มต.)123/2567 ลว.31.01.2567',
+          document_no: '-',
           status: 20,
           statusDesciption: '',
-          date: '2024-09-12T14:30:00',
+          date: '',
           comment:'',
           document_hint:'หนังสือขออนุมัติจำหน่ายมิเตอร์และอุปกรณ์ประกอบ'
         },
@@ -258,10 +255,10 @@ const step = ref(10);
           operator: 'กบล.',
           detail: `อนุมัติจำหน่าย`,
           document: 'หนังสืออนุมัติจำหน่ายจากผู้มีอำนาจลงนาม',
-          document_no: 'น.3กบล.(มต.) 567/2567 ลว.15.02.2567 ',
+          document_no: '-',
           status: 20,
           statusDesciption: '',
-          date: '2024-09-13T09:00:00',
+          date: '',
           comment:'',
           document_hint:'หนังสืออนุมัติจำหน่ายจากผู้มีอำนาจลงนาม'
         },
@@ -273,7 +270,7 @@ const step = ref(10);
           document_no: '',
           status: 10,
           statusDesciption: '',
-          date: '2024-09-14T15:45:00',
+          date: '',
           comment:'',
           document_hint:'ใบขออนุมัติเห็นชอบราคาขายขั้นต่ำ'
         },
@@ -285,7 +282,7 @@ const step = ref(10);
           document_no: '',
           status: 20,
           statusDesciption: '',
-          date: '2024-09-15T10:20:00',
+          date: '',
           comment:'',
         },
         {
@@ -296,7 +293,7 @@ const step = ref(10);
           document_no: '',
           status: 10,
           statusDesciption: '',
-          date: '2024-09-16T08:00:00',
+          date: '',
           comment:'',
         },
         {
@@ -307,7 +304,7 @@ const step = ref(10);
           document_no: '',
           status: 10,
           statusDesciption: '',
-          date: '2024-09-17T16:30:00',
+          date: '',
           comment:'',
           document_hint:'หนังสืออนุมัติหลักการขาย'
         },
@@ -319,7 +316,7 @@ const step = ref(10);
           document_no: '',
           status: 10,
           statusDesciption: '',
-          date: '2024-09-18T12:15:00',
+          date: '',
           comment:''
         },
         {
@@ -330,7 +327,7 @@ const step = ref(10);
           document_no: '',
           status: 10,
           statusDesciption: '',
-          date: '2024-09-18T12:15:00',
+          date: '',
           comment:'',
           document_hint:'เอกสารประกาศขาย'
         },
@@ -342,7 +339,7 @@ const step = ref(10);
           document_no: '',
           status: 10,
           statusDesciption: '',
-          date: '2024-09-18T12:15:00',
+          date: '',
           comment:''
         }
         ,
@@ -355,7 +352,7 @@ const step = ref(10);
           document_no: '',
           status: 10,
           statusDesciption: '',
-          date: '2024-09-18T12:15:00',
+          date: '',
           comment:''
         },
         {
@@ -366,7 +363,7 @@ const step = ref(10);
           document_no: '',
           status: 10,
           statusDesciption: '',
-          date: '2024-09-18T12:15:00',
+          date: '',
           comment:'',
           document_hint:'หนังสืออนุมัติรับราคา'
         }
@@ -379,7 +376,7 @@ const step = ref(10);
           document_no: '',
           status: 10,
           statusDesciption: '',
-          date: '2024-09-18T12:15:00',
+          date: '',
           comment:'',
           document_hint:'ใบเสร็จรับเงิน และ ใส่จำนวนเงิน'
         } ,
@@ -391,7 +388,7 @@ const step = ref(10);
           document_no: '',
           status: 10,
           statusDesciption: '',
-          date: '2024-09-18T12:15:00',
+          date: '',
           comment:'',
           document_hint:'ใบจ่ายของ (ตัดจำหน่าย MvT 555)'
         },
@@ -403,7 +400,7 @@ const step = ref(10);
           document_no: '',
           status: 10,
           statusDesciption: '',
-          date: '2024-09-18T12:15:00',
+          date: '',
           comment:'',
           document_hint:'หนังสือรายงานการส่งมอบและรับมอบ'
         },
@@ -415,7 +412,7 @@ const step = ref(10);
           document_no: '',
           status: 10,
           statusDesciption: '',
-          date: '2024-09-18T12:15:00',
+          date: '',
           comment:'',
           document_hint:'หนังสือรายงานการขาย'
         },
@@ -427,7 +424,7 @@ const step = ref(10);
           document_no: '',
           status: 10,
           statusDesciption: '',
-          date: '2024-09-18T12:15:00',
+          date: '',
           comment:'',
           document_hint:'ตัดจำหน่ายทรัพย์สิน (AA)'
         }

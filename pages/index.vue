@@ -5,7 +5,9 @@
     <div class="row q-col-gutter-md">
       <div class="col-12 col-md-4" v-for="(chartData, index) in charts" :key="index">
         <q-card class="q-pa-md">
-          <div class="text-subtitle2 q-mb-sm">กลุ่มที่ {{ index + 1 }}</div>
+          <div class="text-subtitle2 q-mb-sm">
+            {{ chartTitles[index] }}
+            </div>
           <Pie :data="chartData" :options="chartOptions" />
         </q-card>
       </div>
@@ -38,17 +40,25 @@ const chartOptions: ChartOptions<'pie'> = {
         const percent = ((value / total) * 100).toFixed(0)
         return `${percent}%`
       }
+      
     }
   }
 }
-
+const chartTitles = [
+  'กฟจ.นครสวรรค์ (CEO)',
+  'กฟจ.ชัยนาท (CEO)',
+  'กฟจ.สิงห์บุรี (CEO)',
+  'กฟจ.ลพบุรี (CEO)',
+  'กฟจ.อุทัยธานี CEO',
+  'กฟจ.เพชรบูรณ์ CEO'
+]
 
 const charts = ref([
   {
     labels: ['ตัดจำหน่ายแล้ว', 'รออนุมัติจำหน่าย'],
     datasets: [
       {
-        data: [4, 8,],
+        data: [30, 70,],
         backgroundColor: ['#16A34A','#6B7280']
       }
     ]
@@ -57,7 +67,7 @@ const charts = ref([
     labels: ['ตัดจำหน่ายแล้ว', 'รออนุมัติจำหน่าย'],
     datasets: [
       {
-        data: [9,7],
+        data: [90,10],
         backgroundColor: ['#16A34A','#6B7280']
       }
     ]
@@ -66,7 +76,7 @@ const charts = ref([
     labels: ['ตัดจำหน่ายแล้ว', 'รออนุมัติจำหน่าย'],
     datasets: [
       {
-        data: [1,3],
+        data: [70,30],
         backgroundColor: ['#16A34A','#6B7280']
       }
     ]
@@ -75,7 +85,7 @@ const charts = ref([
     labels: ['ตัดจำหน่ายแล้ว', 'รออนุมัติจำหน่าย'],
     datasets: [
       {
-        data: [7,8],
+        data: [70,30],
         backgroundColor: ['#16A34A','#6B7280']
       }
     ]
@@ -84,7 +94,7 @@ const charts = ref([
     labels: ['ตัดจำหน่ายแล้ว', 'รออนุมัติจำหน่าย'],
     datasets: [
       {
-        data: [3,1],
+        data: [30,70],
         backgroundColor: ['#16A34A','#6B7280']
       }
     ]

@@ -25,8 +25,8 @@ export default defineEventHandler(async (event) => {
       const step = (fields.step || 'unknown').toString()
       const documentNo = (fields.document_no || '').toString()
       const dateSigned = (fields.date_signed || '').toString()
-      const amount = fields.amount ? parseFloat(fields.amount.toString()) : null
-
+      const rawAmount = fields.amount?.toString()
+      const amount = rawAmount && !isNaN(Number(rawAmount)) ? Number(rawAmount) : null
       const originalName = file.originalFilename || 'unknown'
 
       const allowedExtensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx']
@@ -43,8 +43,16 @@ export default defineEventHandler(async (event) => {
       const storageName = `${step}__${nameOnly}__${datePart}${ext}`
       
 
-      const savePath = path.join(process.cwd(), 'public/uploads', storageName)
-      fs.writeFileSync(savePath, buffer)
+      await FileModel.create({
+  step,
+  filename: storageName,
+  originalName,
+  uploadedAt: now,
+  documentNo,
+  dateSigned,
+  amount,
+  data: buffer // ⬅️ เก็บไฟล์ลง MongoDB
+})
 
       // ✅ บันทึกชื่อเดิมไว้ใน MongoDB ด้วย
       const created = await FileModel.create({
@@ -62,6 +70,14 @@ export default defineEventHandler(async (event) => {
         id: created._id,
         filename: storageName,
         originalName
+      })
+
+      return resolve({
+      success: true,
+      id: created._id,
+      filename: storageName,
+      originalName,
+      createdAt: created.createdAt, // ✅ ส่งกลับไปด้วย
       })
     })
   })
