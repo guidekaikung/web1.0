@@ -39,34 +39,26 @@
           <td class="text-left">{{ row.no }}</td>
           <td class="text-left">{{ row.operator }}</td>
           <td class="text-left">{{ row.detail }}</td>
-
-          <!-- เอกสาร -->
           <td class="text-left">
-            <template v-if="row.file && !['1','4.2','6','9','12'].includes(String(row.no))">
-              <q-btn
-                dense flat color="primary"
-                :label="row.document || 'ดาวน์โหลด'"
-                @click="downloadFile(row.file)"
-              />
-            </template>
-            <template v-else>
-              {{ row.document || '-' }}
+              <template v-if="row.url">
+                <a :href="row.url" download class="text-primary">
+                  {{ row.document }}
+                </a>
+              </template>
+              <template v-else>
+                {{ row.document || '-' }}
+              </template>
+            </td>
+          <td class="text-left">
+            <template v-if="!['4.1', '4.2', '6', '7.1', '7.2'].includes(String(row.no))">
+              <div class="column">
+                <q-btn flat label="Upload" @click="openUploadDialog(i)" />
+                <small v-if="row.document_hint" class="text-caption text-grey">
+                  เอกสารที่ต้องใช้: {{ row.document_hint }}
+                </small>
+              </div>
             </template>
           </td>
-
-          <!-- Action -->
-<td class="text-left">
-  <template v-if="!['4.1', '4.2', '6', '7.1', '7.2'].includes(String(row.no))">
-    <div class="column">
-      <q-btn flat label="Upload" @click="openUploadDialog(i)" />
-      <small v-if="row.document_hint" class="text-caption text-grey">
-        เอกสารที่ต้องใช้: {{ row.document_hint }}
-      </small>
-    </div>
-  </template>
-</td>
-
-          <!-- เลขที่หนังสือ + จำนวนเงิน -->
           <td class="text-left">
             <template v-if="row.amount">
               {{ row.document_no }} — จำนวนเงิน: {{ formatAmount(row.amount) }}
@@ -75,31 +67,26 @@
               {{ row.document_no || '-' }}
             </template>
           </td>
-
           <td class="text-left">{{ row.comment }}</td>
           <td class="text-left">{{ row.createdAt ? row.createdAt.split('T')[0] : row.date }}</td>
         </tr>
       </tbody>
     </q-markup-table>
-
     <!-- ✅ ข้อ 3: Upload Popup -->
     <q-dialog v-model="showDialog">
       <q-card style="min-width: 400px">
         <q-card-section>
           <div class="text-h6">อัปโหลดเอกสาร</div>
         </q-card-section>
-
         <q-card-section>
           <q-file v-model="uploadForm.file" label="เลือกไฟล์เอกสาร" filled />
           <q-input v-model="uploadForm.date_signed" label="วันที่ลงหนังสือ" type="date" filled class="q-mt-sm" />
-
           <q-input
             v-if="['2','3'].includes(String(currentStep?.no))"
             v-model="uploadForm.document_no"
             label="เลขที่หนังสือ"
             filled class="q-mt-sm"
           />
-
           <q-input
             v-if="String(currentStep?.no) === '9'"
             v-model.number="uploadForm.amount"
@@ -107,8 +94,7 @@
             type="number"
             filled class="q-mt-sm"
           />
-        </q-card-section>
-
+        </q-card-section>.
         <q-card-actions align="right">
           <q-btn flat label="ยกเลิก" v-close-popup />
           <q-btn color="primary" label="อัปโหลด" @click="confirmUpload" />
@@ -208,6 +194,7 @@ interface TimelineItem {
   date_signed?: string; 
   document_hint?: string; 
   createdAt?: string
+  url?: string;
 }
 
 const step = ref(10);
@@ -224,7 +211,7 @@ const step = ref(10);
 //     console.warn("No data received.");
 //   }
 // }
-
+  
   const model = ref<TimelineItem[]>([
     {
           no: 1,
@@ -232,6 +219,7 @@ const step = ref(10);
           detail:   'Upload File ZAAR020 (from SAP)',
           document: 'File ZAAR020  รายงานขออนุมัติจำหน่ายมิเตอร์ชำรุด',
           document_no: '',
+          url: "/files/test.pdf",
           status: 20,
           statusDesciption: '',
           date: '',
@@ -244,6 +232,7 @@ const step = ref(10);
           detail: 'รายงานผลจากคณะกรรมการสอบหาข้อเท็จจริง (ส่งหนังสือถึง กบล.)',
           document: 'หนังสือขออนุมัติจำหน่ายมิเตอร์และอุปกรณ์ประกอบ',
           document_no: '-',
+          url: "/files/test.pdf",
           status: 20,
           statusDesciption: '',
           date: '',
@@ -256,6 +245,7 @@ const step = ref(10);
           detail: `อนุมัติจำหน่าย`,
           document: 'หนังสืออนุมัติจำหน่ายจากผู้มีอำนาจลงนาม',
           document_no: '-',
+          url: "/files/test.pdf",
           status: 20,
           statusDesciption: '',
           date: '',
@@ -268,6 +258,7 @@ const step = ref(10);
           detail: 'กำหนดราคาขายขั้นต่ำ โดยดำเนินการตามข้อ 5 และ 6',
           document: 'คำนวณราคาและขออนุมัติเห็นชอบราคาขายขั้นต่ำ',
           document_no: '',
+          url: "/files/test.pdf",
           status: 10,
           statusDesciption: '',
           date: '',
@@ -302,6 +293,7 @@ const step = ref(10);
           detail: 'จัดทำหนังสือขออนุมัติหลักการขายจากผู้มีอำนาจสั่งขาย',
           document: 'หนังสืออนุมัติหลักการขาย',
           document_no: '',
+          url: "/files/test.pdf",
           status: 10,
           statusDesciption: '',
           date: '',
@@ -325,6 +317,7 @@ const step = ref(10);
           detail: 'จัดทำเอกสารประกาศขายและเผยแพร่การขาย (แจ้ง กบพ.ลงประกาศ)',
           document: 'เอกสารประกาศขายและเผยแพร่การขาย',
           document_no: '',
+          url: "/files/test.pdf",
           status: 10,
           statusDesciption: '',
           date: '',
@@ -361,6 +354,7 @@ const step = ref(10);
           detail: `ขออนุมัติรับราคาและขออนุมัติหลักการขายจากผู้มีอำนาจสั่งขาย`,
           document: 'หนังสืออนุมัติรับราคา',
           document_no: '',
+          url: "/files/test.pdf",
           status: 10,
           statusDesciption: '',
           date: '',
@@ -374,6 +368,7 @@ const step = ref(10);
           detail: `รับชำระเงิน และออกใบเสร็จให้ผู้รับซื้อ`,
           document: 'ใบเสร็จรับเงิน',
           document_no: '',
+          url: "/files/test.pdf",
           status: 10,
           statusDesciption: '',
           date: '',
@@ -386,6 +381,7 @@ const step = ref(10);
           detail: `ตัดจำหน่าย (ZMME024) และพิมพ์ใบจ่ายของ (ตัดจำหน่าย MIGO MvT 555)`,
           document: 'ใบจ่ายของ (ตัดจำหน่าย MvT 555)',
           document_no: '',
+          url: "/files/test.pdf",
           status: 10,
           statusDesciption: '',
           date: '',
@@ -398,6 +394,7 @@ const step = ref(10);
           detail: `คณะกรรมการส่งมอบพัสดุ ทำหนังสือรายงานผลการดำเนินการขาย และส่งมอบ`,
           document: 'หนังสือรายงานการส่งมอบและรับมอบ',
           document_no: '',
+          url: "/files/test.pdf",
           status: 10,
           statusDesciption: '',
           date: '',
@@ -410,6 +407,7 @@ const step = ref(10);
           detail: `รายงานผลการขาย ส่งให้ กบฟ. เพื่อตัดจำหน่ายออกจากบัญชีสินทรัพย์`,
           document: 'หนังสือรายงานการขาย',
           document_no: '',
+          url: "/files/test.pdf",
           status: 10,
           statusDesciption: '',
           date: '',
@@ -422,6 +420,7 @@ const step = ref(10);
           detail: `ตัดจำหน่ายทรัพย์สินออกจากระบบบัญชีสินทรัพย์`,
           document: 'ตัดจำหน่ายทรัพย์สิน (AA)',
           document_no: '',
+          url: "/files/test.pdf",
           status: 10,
           statusDesciption: '',
           date: '',

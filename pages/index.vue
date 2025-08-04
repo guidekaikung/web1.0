@@ -16,20 +16,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement } from 'chart.js'
 import { Pie } from 'vue-chartjs'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
+import type { ChartOptions } from 'chart.js'
 
 ChartJS.register(ChartDataLabels)
 ChartJS.register(Title, Tooltip, Legend, ArcElement)
-import type { ChartOptions } from 'chart.js'
 
 const chartOptions: ChartOptions<'pie'> = {
   responsive: true,
   plugins: {
     legend: {
-      position: 'bottom'  
+      position: 'bottom'
     },
     datalabels: {
       color: '#fff',
@@ -40,10 +40,10 @@ const chartOptions: ChartOptions<'pie'> = {
         const percent = ((value / total) * 100).toFixed(0)
         return `${percent}%`
       }
-      
     }
   }
 }
+
 const chartTitles = [
   'กฟจ.นครสวรรค์ (CEO)',
   'กฟจ.ชัยนาท (CEO)',
@@ -53,60 +53,48 @@ const chartTitles = [
   'กฟจ.เพชรบูรณ์ CEO'
 ]
 
-const charts = ref([
-  {
-    labels: ['ตัดจำหน่ายแล้ว', 'รออนุมัติจำหน่าย'],
-    datasets: [
-      {
-        data: [30, 70,],
-        backgroundColor: ['#16A34A','#6B7280']
-      }
-    ]
-  },
-  {
-    labels: ['ตัดจำหน่ายแล้ว', 'รออนุมัติจำหน่าย'],
-    datasets: [
-      {
-        data: [90,10],
-        backgroundColor: ['#16A34A','#6B7280']
-      }
-    ]
-  },
-  {
-    labels: ['ตัดจำหน่ายแล้ว', 'รออนุมัติจำหน่าย'],
-    datasets: [
-      {
-        data: [70,30],
-        backgroundColor: ['#16A34A','#6B7280']
-      }
-    ]
-  },
-  {
-    labels: ['ตัดจำหน่ายแล้ว', 'รออนุมัติจำหน่าย'],
-    datasets: [
-      {
-        data: [70,30],
-        backgroundColor: ['#16A34A','#6B7280']
-      }
-    ]
-  },
-  {
-    labels: ['ตัดจำหน่ายแล้ว', 'รออนุมัติจำหน่าย'],
-    datasets: [
-      {
-        data: [30,70],
-        backgroundColor: ['#16A34A','#6B7280']
-      }
-    ]
-  },
-  {
-    labels: ['ตัดจำหน่ายแล้ว', 'รออนุมัติจำหน่าย'],
-    datasets: [
-      {
-        data: [6,4],
-        backgroundColor: ['#16A34A','#6B7280']
-      }
-    ]
+const charts = ref<any[]>([])
+
+onMounted(async () => {
+  const res = await fetch('/data/INSx RPA.json')
+  const jsonData = await res.json()
+  const raw = jsonData['ชีต3']
+
+  // สร้าง chart สำหรับแต่ละ CEO
+  charts.value = chartTitles.map((ceoTitle) => {
+  let isInGroup = false
+  let sumWaitingPercent = 0
+
+  for (const row of raw) {
+    const name = row.Column4
+
+    if (name?.includes('CEO')) {
+      isInGroup = name === ceoTitle
+      continue
+    }
+
+    if (isInGroup) {
+      sumWaitingPercent += Number(row.Column9 || 0)  // ✅ รวม % โดยตรง
+    }
   }
-])
+
+  //ข้อมูลเป็น % 
+  const waitingPercent = sumWaitingPercent
+  const approvedPercent = 100 - waitingPercent
+
+  return {
+    labels: ['ตัดจำหน่ายแล้ว', 'รออนุมัติจำหน่าย'],
+    datasets: [
+      {
+        data: [approvedPercent, waitingPercent],
+        backgroundColor: ['#16A34A', '#6B7280']
+        }
+      ]
+    }
+  })
+})
 </script>
+
+
+
+ 
