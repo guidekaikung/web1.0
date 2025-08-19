@@ -1,11 +1,34 @@
 <template>
   <div class="q-pa-md">
     <div class="q-pa-md">
-      <NuxtLink to="/approve-add">
-        <q-btn color="purple" label="+ สร้างขออนุมัติจำหน่าย"></q-btn>
-      </NuxtLink>
+      <q-btn color="purple" label="+ สร้างขออนุมัติจำหน่าย" @click="dialog = true" />
     </div>
+
     <ApproveListDataTable :rows="rowsWithDays" />
+
+    <!-- ⬇️ Popup -->
+    <q-dialog v-model="dialog" persistent>
+      <q-card style="min-width: 400px">
+        <q-card-section class="text-h6">
+          สร้างขออนุมัติจำหน่าย
+        </q-card-section>
+
+        <q-separator />
+
+        <q-card-section>
+          <q-form @submit.prevent="handleSubmit">
+            <q-input v-model="form.request_no" label="เลขที่คำขอ" filled dense class="q-mb-sm" />
+            <q-input v-model="form.document_no" label="หนังสือเลขที่" filled dense class="q-mb-sm" />
+            <q-input v-model="form.document_date" label="ลงวันที่" filled dense type="date" class="q-mb-sm" />
+
+            <div class="q-mt-md row justify-end">
+              <q-btn flat label="ยกเลิก" color="negative" @click="dialog = false" />
+              <q-btn label="บันทึก" type="submit" color="primary" class="q-ml-sm" />
+            </div>
+          </q-form>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
   </div>
 </template>
 
@@ -13,12 +36,21 @@
 definePageMeta({
   middleware: ["auth"],
 })
+defineProps() 
+defineEmits()
 
-function calculateDays(start: string, end: string): number {
-  const startDate = new Date(start)
-  const endDate = new Date(end)
-  const diff = endDate.getTime() - startDate.getTime()
-  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+const dialog = ref(false)
+
+const form = reactive({
+  request_no: "",
+  document_no: "",
+  document_date: "",
+})
+
+function handleSubmit() {
+  console.log("ข้อมูลใหม่:", form)
+  // TODO: เพิ่ม logic บันทึกจริง
+  dialog.value = false
 }
 
 const rows = [
@@ -169,7 +201,12 @@ const rowsWithDays = rows.map((r) => {
   const start: string = r.create_date ?? ''
   const today: string = new Date().toISOString().split("T")[0] as string
 
-
+function calculateDays(start: string, end: string): number {
+  const startDate = new Date(start)
+  const endDate = new Date(end)
+  const diff = endDate.getTime() - startDate.getTime()
+  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+}
 
   return {
     ...r,
