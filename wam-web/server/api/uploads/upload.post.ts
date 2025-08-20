@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
         const mimetype = (file as any).mimetype || ''   // บางเวอร์ชันของ formidable ใช้ file.mimetype
 
         // ===== ตรวจชนิดไฟล์ =====
-        const allowedExtensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx']
+        const allowedExtensions = ['.pdf', '.doc', '.docx', '.xls', '.xlsx','.txt']
         const ext = path.extname(originalName).toLowerCase()
         if (!allowedExtensions.includes(ext)) {
           return resolve({ success: false, error: 'ไม่อนุญาตให้ส่งไฟล์ประเภทนี้' })

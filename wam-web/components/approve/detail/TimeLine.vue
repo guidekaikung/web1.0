@@ -133,7 +133,6 @@ interface TimelineItem {
   url?: string
 }
 const templateMap: Record<string, string> = {
-  '1':   'test.pdf',                 // File ZAAR020 รายงานฯ
   '2':   'test.pdf',          // หนังสือขออนุมัติจำหน่ายมิเตอร์ฯ
   '3':   'test.pdf',           // หนังสืออนุมัติจำหน่ายจากผู้มีอำนาจฯ
   '4':   'test.pdf',           // คำนวณราคาและขออนุมัติฯ
@@ -195,7 +194,7 @@ async function confirmUpload() {
   const file = uploadForm.value.file
   if (!file || !stepNo) return
 
-  const allowedExtensions = ['.doc', '.docx', '.xls', '.xlsx', '.pdf']
+  const allowedExtensions = ['.doc', '.docx', '.xls', '.xlsx', '.pdf', '.txt']
   const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
   if (!allowedExtensions.includes(ext)) {
     $q.notify({ type: 'negative', message: 'ไฟล์ไม่อยู่ในรูปแบบที่อนุญาต' })
